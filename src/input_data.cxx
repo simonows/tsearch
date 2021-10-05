@@ -1,4 +1,7 @@
-
+/*!
+ * \file
+ * \brief Realization of the command parser.
+*/
 #include <tsearch/tsearch.h>
 
 
@@ -14,12 +17,12 @@ namespace tsearch
 
 
     std::map<std::string, InputData::HandlerFuncPtr> const InputData::handler = {
-        { "-f",    file_handler }
+        { "-f",     file_handler }
       , { "--file", file_handler }
-      , { "-m",    mode_handler }
+      , { "-m",     mode_handler }
       , { "--mode", mode_handler }
-      , { "-v",    word_handler }
-      , { "-h",    help_handler }
+      , { "-v",     word_handler }
+      , { "-h",     help_handler }
       , { "--help", help_handler }
     };
 
@@ -43,6 +46,16 @@ namespace tsearch
                 // TODO: make a warning
             }
         }
+    }
+
+    /*!
+     * Validate command line arguments.
+     *
+     * \return validate report.
+    */
+    bool InputData::validate()
+    {
+        return true;
     }
 
     /*!

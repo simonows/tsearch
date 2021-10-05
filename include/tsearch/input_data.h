@@ -1,3 +1,7 @@
+/*!
+ * \file
+ * \brief Implementation of the command parser.
+*/
 #ifndef __INPUT_DATA_H__
 #define __INPUT_DATA_H__
 
@@ -17,7 +21,10 @@ namespace tsearch
     public:
         InputData();
         void parse(int const argc, char const **argv);
+        bool validate();
+
         enum TgMode get_mode(){ return mode; }
+        std::string get_word(){ return word; }
         std::string get_filename(){ return file_name; }
 
         typedef void (*HandlerFuncPtr)(

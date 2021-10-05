@@ -2,10 +2,7 @@
  * \file
  * \brief Main source.
  *
- * This file contains the logic of interaction with the command line.
-*/
-
-/*
+ * Тестовое задание:
  * Напишите (консольную) программу, принимающую на вход имя файла и набор
  * параметров. В зависимости от параметров программа должна работать в трёх
  * режимах:
@@ -88,6 +85,11 @@ int main(int const argc, char const **argv)
     {
         tg_args.parse(argc, argv);
 
+        if (!tg_args.validate())
+        {
+            throw tsearch::TgError::BAD_ARGS;
+        }
+
         switch (tg_args.get_mode())
         {
             case tsearch::TgMode::HELP:
@@ -97,14 +99,17 @@ int main(int const argc, char const **argv)
             }
             case tsearch::TgMode::WORD:
             {
-                //auto count = tsearch::count_words(filename, word);
-                //std::cout << count << std::endl;
+                auto count = tsearch::count_words(
+                    tg_args.get_filename()
+                  , tg_args.get_word()
+                );
+                std::cout << count << std::endl;
                 break;
             }
             case tsearch::TgMode::CHECKSUM:
             {
-                //auto checksum = tsearch::calc_checksum(filename);
-                //std::cout << checksum << std::endl;
+                auto checksum = tsearch::calc_checksum(tg_args.get_filename());
+                std::cout << checksum << std::endl;
                 break;
             }
             default:
@@ -113,10 +118,6 @@ int main(int const argc, char const **argv)
     }
     catch (enum tsearch::TgError rc)
     {
-        /*if (rc && sizeof(ps_strerr) / sizeof(char*) > static_cast<size_t>(rc - 1))
-        {
-            std::cerr << "Error: " << ps_strerr[rc] << std::endl;
-        }*/
         exit(static_cast<int>(rc));
     }
     catch (std::exception &ex)

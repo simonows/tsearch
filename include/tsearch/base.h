@@ -1,3 +1,7 @@
+/*!
+ * \file
+ * \brief Base data types.
+*/
 #ifndef __TSEARCH_BASE_H__
 #define __TSEARCH_BASE_H__
 
@@ -16,6 +20,7 @@ namespace tsearch
     typedef enum class TgError
     {
         OK = 0,
+        BAD_ARGS,
         FILE_NAME_MISSING,
         MODE_MISSING,
         FILE_IS_MANDATORY,
