@@ -2,13 +2,14 @@
  * \file
  * \brief Implementation of the base procedures.
 */
+
 #ifndef __TSEARCH_H__
 #define __TSEARCH_H__
 
 #include <tsearch/base.h>
 #include <tsearch/input_data.h>
 
-#define CASE_SENSITIVE
+//#define CASE_SENSITIVE
 
 namespace tsearch
 {
@@ -16,7 +17,9 @@ namespace tsearch
 
     unsigned int calc_checksum(std::string filename);
 
-
+    /*!
+     * \brief Process file in memory
+    */
     class MmapReader
     {
         std::string file_name;
@@ -33,12 +36,16 @@ namespace tsearch
         void operator=(const MmapReader&);
 
     public:
-        MmapReader(std::string const file_name, std::string const word);
         MmapReader(std::string const _file_name);
+        MmapReader(std::string const _file_name, std::string const _word)
+          : MmapReader(_file_name)
+        {}
         ~MmapReader();
         bool is_exist() { return fd != -1; }
+        bool eof() { return offset == file_len; }
         bool betweenbuf(std::string &);
         size_t nextpart(char **);
+        size_t size() { return file_len; }
         void set_part_size(size_t size) { part_size = size; }
     };
 }

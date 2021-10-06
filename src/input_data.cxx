@@ -2,8 +2,8 @@
  * \file
  * \brief Realization of the command parser.
 */
-#include <tsearch/tsearch.h>
 
+#include <tsearch/tsearch.h>
 
 static std::string const WORDS_PATTERN = "word";
 static std::string const CHECKSUM_PATTERN = "checksum";
@@ -15,7 +15,7 @@ namespace tsearch
     void word_handler(InputData &, int const &, char const **, int &);
     void help_handler(InputData &, int const &, char const **, int &);
 
-
+    /// Handler map
     std::map<std::string, InputData::HandlerFuncPtr> const InputData::handler = {
         { "-f",     file_handler }
       , { "--file", file_handler }
@@ -55,6 +55,14 @@ namespace tsearch
     */
     bool InputData::validate()
     {
+        if (file_name.empty() || mode == TgMode::NONE)
+        {
+            return false;
+        }
+        if (mode == TgMode::WORD)
+        {
+            return !word.empty();
+        }
         return true;
     }
 
@@ -65,6 +73,8 @@ namespace tsearch
      * \param[in] argc Command-line argument's count.
      * \param[in] argv Command-line arguments.
      * \param[in] i iterator.
+     *
+     * \throw TgError::FILE_NAME_MISSING when a argv doen't contain a file name
     */
     void file_handler(
         InputData &obj
@@ -121,7 +131,7 @@ namespace tsearch
         }
         else
         {
-            throw TgError::FILE_NAME_MISSING;
+            throw TgError::MODE_MISSING;
         }
     }
 
@@ -132,6 +142,8 @@ namespace tsearch
      * \param[in] argc Command-line argument's count.
      * \param[in] argv Command-line arguments.
      * \param[in] i iterator.
+     *
+     * \throw TgError::MODE_MISSING when a argv doen't contain a mode type
     */
     void mode_handler(
         InputData &obj
@@ -141,7 +153,7 @@ namespace tsearch
     ){
         if (argc <= i + 1)
         {
-            return;
+            throw TgError::MODE_MISSING;
         }
         if (WORDS_PATTERN == argv[i + 1])
         {
@@ -155,7 +167,7 @@ namespace tsearch
         }
         else
         {
-            throw TgError::MODE_MISSING;
+            throw TgError::MODE_WRONG;
         }
     }
 

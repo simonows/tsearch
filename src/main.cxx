@@ -28,24 +28,13 @@
  *   - использование modern C++ best practices
 */
 
-#include <cstdio>
-#include <cstring>
 #include <iostream>
 #include <exception>
 
 #include <tsearch/tsearch.h>
 
-
-//! A string array of errors. The index corresponds to the error code.
-static char const* const ps_strerr[] = {
-    "ok"
-    "file name is missing"
-  , "\"-m --mode\" option assumes \"np_complete\" or \"np_partial\" only"
-  , "\"-f --file\" option is mandatory"
-};
-
 //! Help' printable string.
-static char const* const HELP =
+static std::string const HELP =
     "Usage: ./test -f FILE [OPTION...]"
     "\n    -f, --file FILE_NAME"
     "\n        input file (mandatory)"
@@ -85,7 +74,7 @@ int main(int const argc, char const **argv)
     {
         tg_args.parse(argc, argv);
 
-        if (!tg_args.validate())
+        if (not tg_args.validate())
         {
             throw tsearch::TgError::BAD_ARGS;
         }
@@ -116,9 +105,11 @@ int main(int const argc, char const **argv)
                 break;
         }
     }
-    catch (enum tsearch::TgError rc)
+    catch (tsearch::TgError &error)
     {
-        exit(static_cast<int>(rc));
+        std::error_code ec = error;
+        std::cerr << "Error: " << ec.message() << std::endl;
+        exit(ec.value());
     }
     catch (std::exception &ex)
     {

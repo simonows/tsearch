@@ -2,6 +2,7 @@
  * \file
  * \brief Implementation of the command parser.
 */
+
 #ifndef __INPUT_DATA_H__
 #define __INPUT_DATA_H__
 
@@ -12,6 +13,9 @@
 
 namespace tsearch
 {
+    /*!
+     * \brief Input arguments object
+    */
     class InputData
     {
         enum TgMode mode;
