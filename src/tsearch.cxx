@@ -129,11 +129,59 @@ namespace tsearch
         return count;
     }
 
-    unsigned long calc_checksum(std::string filename)
+    unsigned int calc_checksum(std::string filename)
     {
-        return 12;
+        unsigned int checksum = 0;
+        char *buf = nullptr;
+
+        MmapReader file(filename);
+        file.set_part_size(4194304);
+
+        if (!file.is_exist())
+        {
+            throw TgError::FILE_NOT_FOUND;
+        }
+
+        do
+        {
+            auto len = file.nextpart(&buf);
+            for (size_t i = 0; i < len; i += sizeof(unsigned int))
+            {
+                checksum ^= *(reinterpret_cast<unsigned int*>(buf + i));
+            }
+
+        } while (buf != nullptr);
+
+        return checksum;
     }
 
+
+    MmapReader::MmapReader(std::string const _file_name)
+        : file_name(_file_name)
+        , word("")
+        , btw_word("")
+        , buf(nullptr)
+        , buf_len(0)
+        , file_len(0)
+        , offset(0)
+        , fd(-1)
+        , part_size(0)
+    {
+        struct stat statbuf;
+        int rv = stat(file_name.c_str(), &statbuf);
+        if (rv != 0) {
+            //log_err("Skipping %s: Error fstating file.", file_full_path);
+            throw TgError::FSTAT_FAILED;
+        }
+
+        file_len = static_cast<size_t>(statbuf.st_size);
+
+        fd = open(file_name.c_str(), O_RDONLY);
+        if (fd < 0) {
+            //log_err("Skipping %s: Error opening file: %s", file_full_path, strerror(errno));
+            throw TgError::OPEN_FAILED;
+        }
+    }
 
 
     MmapReader::MmapReader(std::string const _file_name, std::string const _word)
@@ -201,8 +249,11 @@ namespace tsearch
 
         if (buf != nullptr)
         {
-            btw_word.clear();
-            btw_word.append(buf + buf_len - word.size() + 1, word.size() - 1);
+            if (word.size())
+            {
+                btw_word.clear();
+                btw_word.append(buf + buf_len - word.size() + 1, word.size() - 1);
+            }
 #ifdef _WIN32
             UnmapViewOfFile(buf);
             buf = nullptr;
@@ -260,7 +311,10 @@ namespace tsearch
         }
         else
         {
-            btw_word.append(buf, word.size() - 1);
+            if (word.size())
+            {
+                btw_word.append(buf, word.size() - 1);
+            }
             offset += buf_len;
         }
 #endif

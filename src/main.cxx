@@ -109,7 +109,7 @@ int main(int const argc, char const **argv)
             case tsearch::TgMode::CHECKSUM:
             {
                 auto checksum = tsearch::calc_checksum(tg_args.get_filename());
-                std::cout << checksum << std::endl;
+                std::cout << std::hex << checksum << std::endl;
                 break;
             }
             default:

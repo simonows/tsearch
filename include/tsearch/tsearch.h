@@ -14,7 +14,7 @@ namespace tsearch
 {
     size_t count_words(std::string filename, std::string word);
 
-    unsigned long calc_checksum(std::string filename);
+    unsigned int calc_checksum(std::string filename);
 
 
     class MmapReader
@@ -34,6 +34,7 @@ namespace tsearch
 
     public:
         MmapReader(std::string const file_name, std::string const word);
+        MmapReader(std::string const _file_name);
         ~MmapReader();
         bool is_exist() { return fd != -1; }
         bool betweenbuf(std::string &);
