@@ -24,6 +24,9 @@ namespace tsearch
         FILE_NAME_MISSING,
         MODE_MISSING,
         FILE_IS_MANDATORY,
+        FILE_NOT_FOUND,
+        FSTAT_FAILED,
+        OPEN_FAILED,
     } TgError;
 
 }

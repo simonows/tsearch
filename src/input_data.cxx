@@ -5,7 +5,7 @@
 #include <tsearch/tsearch.h>
 
 
-static std::string const WORDS_PATTERN = "words";
+static std::string const WORDS_PATTERN = "word";
 static std::string const CHECKSUM_PATTERN = "checksum";
 
 namespace tsearch

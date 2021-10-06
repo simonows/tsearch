@@ -2,128 +2,61 @@
  * \file
  * \brief Realization of the base procedures.
 */
-#include <ctype.h>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/mman.h>
+#endif
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include <tsearch/tsearch.h>
 
-static size_t const ALPHA_SKIP_SIZE = 256;
 
-static size_t alpha_skip_lookup[ALPHA_SKIP_SIZE];
-static size_t *find_skip_lookup;
 
-size_t ag_max(size_t a, size_t b)
-{
-    if (b > a)
-    {
-        return b;
-    }
-    return a;
-}
+extern size_t alpha_skip_lookup[];
+extern size_t *find_skip_lookup;
+
+void generate_alpha_skip(char const *find, size_t f_len, size_t skip_lookup[]);
+void generate_find_skip(const char *find, const size_t f_len, size_t *skip_lookup);
+
 
 
 /* Boyer-Moore strstr */
-const char *bm_strnstr(
-    const char *s
-  , const char *find
-  , const size_t s_len
-  , const size_t f_len
-  , const size_t alpha_skip_lookup[]
-  , const size_t *find_skip_lookup
+char const *bm_strnstr(
+    char const *const s
+  , char const *const find
+  , size_t const s_len
+  , size_t const f_len
+  , size_t const _alpha_skip_lookup[]
+  , size_t const *_find_skip_lookup
 ){
     ssize_t i;
-    size_t pos = f_len - 1;
+    ssize_t pos = static_cast<ssize_t>(f_len - 1);
 
-    while (pos < s_len)
+    while (pos < static_cast<ssize_t>(s_len))
     {
         for (
-            i = f_len - 1;
-            i >= 0 && tolower(s[pos]) == find[i];
+            i = static_cast<ssize_t>(f_len - 1);
+#ifndef CASE_SENSITIVE
+            i >= 0 && tolower(s[pos]) == tolower(find[i]);
+#else
+            i >= 0 && s[pos] == find[i];
+#endif
             pos--, i--
         );
-        if (i < 0) {
+        if (i < 0)
+        {
             return s + pos + 1;
         }
-        pos += ag_max(alpha_skip_lookup[(unsigned char)s[pos]], find_skip_lookup[i]);
+        pos += static_cast<ssize_t>(
+            std::max(_alpha_skip_lookup[(unsigned char)s[pos]], _find_skip_lookup[i])
+        );
     }
 
     return nullptr;
-}
-
-
-void generate_alpha_skip(char const *find, size_t f_len, size_t skip_lookup[])
-{
-    size_t i;
-
-    for (i = 0; i < ALPHA_SKIP_SIZE; i++)
-    {
-        skip_lookup[i] = f_len;
-    }
-
-    f_len--;
-
-    for (i = 0; i < f_len; i++)
-    {
-        skip_lookup[(unsigned char)find[i]] = f_len - i;
-    }
-}
-
-
-int is_prefix(const char *s, const size_t s_len, const size_t pos)
-{
-    size_t i;
-
-    for (i = 0; pos + i < s_len; i++)
-    {
-        if (s[i] != s[i + pos])
-        {
-            return 0;
-        }
-    }
-
-    return 1;
-}
-
-
-size_t suffix_len(const char *s, const size_t s_len, const size_t pos)
-{
-    size_t i;
-
-    for (i = 0; i < pos; i++)
-    {
-        if (s[pos - i] != s[s_len - i - 1])
-        {
-            break;
-        }
-    }
-
-    return i;
-}
-
-
-void generate_find_skip(const char *find, const size_t f_len, size_t **skip_lookup)
-{
-    size_t i;
-    size_t s_len;
-    size_t *sl = ag_malloc(f_len * sizeof(size_t));
-    *skip_lookup = sl;
-    size_t last_prefix = f_len;
-
-    for (i = last_prefix; i > 0; i--)
-    {
-        if (is_prefix(find, f_len, i))
-        {
-            last_prefix = i;
-        }
-        sl[i - 1] = last_prefix + (f_len - i);
-    }
-
-    for (i = 0; i < f_len; i++)
-    {
-        s_len = suffix_len(find, f_len, i);
-        if (find[i - s_len] != find[f_len - 1 - s_len])
-        {
-            sl[f_len - 1 - s_len] = f_len - 1 - i + s_len;
-        }
-    }
 }
 
 
@@ -136,9 +69,10 @@ namespace tsearch
         size_t count = 0;
 
         MmapReader file(filename, word);
+        file.set_part_size(4194304);
         std::string trans;
 
-        if (word.size() == 0)
+        if (word.empty())
         {
             return count;
         }
@@ -148,13 +82,13 @@ namespace tsearch
         }
 
         generate_alpha_skip(word.c_str(), word.size(), alpha_skip_lookup);
-        find_skip_lookup = nullptr;
-        generate_find_skip(word.c_str(), word.size(), &find_skip_lookup);
+        find_skip_lookup = new size_t[word.size()];
+        generate_find_skip(word.c_str(), word.size(), find_skip_lookup);
 
         do
         {
             auto len = file.nextpart(&buf);
-            char *match = nullptr;
+            char const *match = nullptr;
 
             if (file.betweenbuf(trans))
             {
@@ -164,7 +98,7 @@ namespace tsearch
                   , trans.size()
                   , word.size()
                   , alpha_skip_lookup
-                  , find_skip_lookuph
+                  , find_skip_lookup
                 );
                 if (match != nullptr)
                 {
@@ -173,15 +107,15 @@ namespace tsearch
             }
 
             match = buf;
-            while (buf - match < len)
+            while (static_cast<size_t>(match - buf) < len)
             {
                 match = bm_strnstr(
-                    buf
+                    match + word.size()
                   , word.c_str()
                   , len
                   , word.size()
                   , alpha_skip_lookup
-                  , find_skip_lookuph
+                  , find_skip_lookup
                 );
                 if (match == nullptr)
                 {
@@ -191,12 +125,147 @@ namespace tsearch
             }
         } while (buf != nullptr);
 
+        delete[] find_skip_lookup;
         return count;
     }
 
     unsigned long calc_checksum(std::string filename)
     {
-        return 0;
+        return 12;
     }
+
+
+
+    MmapReader::MmapReader(std::string const _file_name, std::string const _word)
+        : file_name(_file_name)
+        , word(_word)
+        , btw_word("")
+        , buf(nullptr)
+        , buf_len(0)
+        , file_len(0)
+        , offset(0)
+        , fd(-1)
+        , part_size(0)
+    {
+        struct stat statbuf;
+        int rv = stat(file_name.c_str(), &statbuf);
+        if (rv != 0) {
+            //log_err("Skipping %s: Error fstating file.", file_full_path);
+            throw TgError::FSTAT_FAILED;
+        }
+
+        file_len = static_cast<size_t>(statbuf.st_size);
+
+        fd = open(file_name.c_str(), O_RDONLY);
+        if (fd < 0) {
+            //log_err("Skipping %s: Error opening file: %s", file_full_path, strerror(errno));
+            throw TgError::OPEN_FAILED;
+        }
+    }
+
+
+    MmapReader::~MmapReader()
+    {
+        if (buf)
+        {
+#ifdef _WIN32
+            UnmapViewOfFile(buf);
+#else
+            if (buf != MAP_FAILED)
+            {
+                munmap(buf, buf_len);
+            }
+#endif
+        }
+        if (fd != -1)
+        {
+            close(fd);
+        }
+    }
+
+
+    bool MmapReader::betweenbuf(std::string &part)
+    {
+        if (btw_word.size() == 2 * (word.size() - 1))
+        {
+            part = btw_word;
+            return true;
+        }
+        return false;
+    }
+
+
+    size_t MmapReader::nextpart(char **_buf)
+    {
+        size_t map_size = file_len - offset;
+
+        if (buf != nullptr)
+        {
+            btw_word.clear();
+            btw_word.append(buf + buf_len - word.size() + 1, word.size() - 1);
+#ifdef _WIN32
+            UnmapViewOfFile(buf);
+            buf = nullptr;
+#else
+            if (buf != MAP_FAILED)
+            {
+                munmap(buf, buf_len);
+                buf = nullptr;
+            }
+#endif
+        }
+        buf_len = std::min(map_size, part_size);
+        if (!buf_len)
+        {
+            *_buf = nullptr;
+            return 0;
+        }
+
+#ifdef _WIN32
+        {
+            HANDLE hmmap = CreateFileMapping(
+                (HANDLE)_get_osfhandle(fd)
+              , 0
+              , PAGE_READONLY
+              , 0
+              , buf_len
+              , NULL
+            );
+            *_buf = buf = (char *)MapViewOfFile(
+                hmmap
+              , FILE_SHARE_READ
+              , 0
+              , offset
+              , buf_len
+            );
+            if (hmmap != NULL)
+            {
+                CloseHandle(hmmap);
+            }
+        }
+#else
+        *_buf = buf = reinterpret_cast<char*>(mmap(
+            nullptr
+          , buf_len
+          , PROT_READ
+          , MAP_PRIVATE
+          , fd
+          , static_cast<ssize_t>(offset)
+        ));
+        if (buf == MAP_FAILED)
+        {
+            buf_len = 0;
+            *_buf = buf = nullptr;
+            //log_err("File %s failed to load: %s.", file_full_path, strerror(errno));
+        }
+        else
+        {
+            btw_word.append(buf, word.size() - 1);
+            offset += buf_len;
+        }
+#endif
+        return buf_len;
+    }
+
 }
 

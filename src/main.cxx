@@ -51,7 +51,7 @@ static char const* const HELP =
     "\n        input file (mandatory)"
     "\n    -m, --mode [word | checksum ]"
     "\n        work mode (mandatory)."
-    "\n    -v WORD"
+    "\n    -v, WORD"
     "\n        word for search (mandatory)."
     "\n    -h, --help"
     "\n        prints help."
@@ -122,6 +122,8 @@ int main(int const argc, char const **argv)
     }
     catch (std::exception &ex)
     {
+        std::cerr << "Error: " << ex.what() << std::endl;
+        exit(1);
     }
 
     return 0;
